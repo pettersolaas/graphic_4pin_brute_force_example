@@ -1,0 +1,439 @@
+/* ##############################################################################################################
+  
+// Graphic 4 pin brute force example - using Macro Scheduler 15
+
+############################################################################################################## */
+Let>startpin=0000
+Let>maxpin=9999
+Let>eatdrinkpin1=1000
+Let>eatdrinkpin2=2000
+Let>eatdrinkpin3=3000
+
+// Opening safe or house?
+Let>openingSafe=0
+
+
+//Recorded Events
+Let>WW_TIMEOUT=5
+CapsOff
+
+MoveWindow>Arma 3*,0,0
+SetFocus>Arma 3*
+Wait>2
+
+Let>logfile=c:\macrolog.txt
+Let>retry=false
+Let>retrycounter=0
+Wait>4
+
+
+
+// Arma 1920 x 1080 (16:9)
+// Windows 2560 x 1440
+
+// BP coords Windowed
+// 0
+Let>a0=1428,723
+
+// 1
+Let>a1=1310,400
+
+// 2
+Let>a2=1429,399
+
+// 3
+Let>a3=1548,400
+
+// 4
+Let>a4=1307,505
+
+// 5
+Let>a5=1428,510
+
+// 6
+Let>a6=1548,509
+
+// 7
+Let>a7=1313,611
+
+// 8
+Let>a8=1428,616
+
+// 9
+Let>a9=1545,615
+
+
+
+
+
+
+Let>pattern1=(^\d{0,9})
+Let>pattern2=(\d{0,9}$)
+
+// Extra code for moving when opening safes 
+Let>safeCounter=0
+
+Let>currentpin=startpin
+While>currentpin<maxpin
+
+// Move every 10 times if opening safes
+if>%openingSafe%=1
+if>%safeCounter%=10
+Send>w
+Wait>0.2
+Send>s
+Let>safeCounter=0
+Wait>1
+endIf
+
+Let>safeCounter=%safeCounter%+1
+endIf
+
+Label OpenCodePanel
+
+// Adds leading zeroes
+Let>currentpin=000%currentpin%
+Let>currentpin={copy("%currentpin%",length("%currentpin%")-3,4)}
+
+// Failing. Save video and screenshot
+if>%retrycounter%>10
+    Press ALT
+    Wait>0.2
+    Press F10
+    Wait>0.125
+    Release ALT
+    Release F10
+    ScreenCapture>0,0,1950,1130,c:\macrologs\screenshot_%currentpin%_nr%retrycounter%.bmp
+    GetDate>timestamp
+    Timestamp>LogFile,%timestamp% Codepanel failed %retrycounter% times. Current PIN: %currentpin%
+    PlayWav>C:\Windows\Media\tada.wav
+    MessageModal>Codepanel failed %retrycounter% times. Current PIN: %currentpin%
+    Goto Stop
+Endif
+
+
+MidStr>currentpin,1,1,currentpin1
+MidStr>currentpin,2,1,currentpin2
+MidStr>currentpin,3,1,currentpin3
+MidStr>currentpin,4,1,currentpin4
+
+Let>currentpin1=a%currentpin1%
+RegEx>pattern1,currentpin1,0,pin1_cord1,num,0
+RegEx>pattern2,currentpin1,0,pin1_cord2,num,0
+
+Let>currentpin2=a%currentpin2%
+RegEx>pattern1,currentpin2,0,pin2_cord1,num,0
+RegEx>pattern2,currentpin2,0,pin2_cord2,num,0
+
+Let>currentpin3=a%currentpin3%
+RegEx>pattern1,currentpin3,0,pin3_cord1,num,0
+RegEx>pattern2,currentpin3,0,pin3_cord2,num,0
+
+Let>currentpin4=a%currentpin4%
+RegEx>pattern1,currentpin4,0,pin4_cord1,num,0
+RegEx>pattern2,currentpin4,0,pin4_cord2,num,0
+
+// Opens code panel in ARMA
+Let>MOUSEEVENTF_WHEEL=2048
+LibFunc>user32,mouse_event,r,MOUSEEVENTF_WHEEL,0,0,-120,0
+Wait>0.1
+LibFunc>user32,mouse_event,r,MOUSEEVENTF_WHEEL,0,0,-120,0
+Wait>0.1
+LibFunc>user32,mouse_event,r,MOUSEEVENTF_WHEEL,0,0,-120,0
+Wait>0.1
+LibFunc>user32,mouse_event,r,MOUSEEVENTF_WHEEL,0,0,-120,0
+Wait>0.1
+LibFunc>user32,mouse_event,r,MOUSEEVENTF_WHEEL,0,0,-120,0
+Wait>0.1
+LibFunc>user32,mouse_event,r,MOUSEEVENTF_WHEEL,0,0,-120,0
+Wait>0.1
+LibFunc>user32,mouse_event,r,MOUSEEVENTF_WHEEL,0,0,-120,0
+Wait>0.1
+MClick
+Wait>0.5
+
+// Makes sure the code panel opens correctly
+ScreenCapture>670,388,994,599,c:\screen.bmp
+FindImagePos>c:\pad.bmp,c:\screen.bmp,20,1,xpos,ypos,imgs
+If>%imgs%>0
+
+Wait>0.5
+// Push pin 1
+MouseMove>pin1_cord1_1,pin1_cord2_1
+LClick
+Wait>0.1
+
+// Push pin 2
+MouseMove>pin2_cord1_1,pin2_cord2_1
+LClick
+Wait>0.1
+
+// Push pin 3
+MouseMove>pin3_cord1_1,pin3_cord2_1
+LClick
+Wait>0.1
+
+// Push pin 4
+MouseMove>pin4_cord1_1,pin4_cord2_1
+LClick
+
+// Wait after all four pins
+Wait>3,8
+//3,5
+
+// Write to logfile
+GetDate>timestamp
+Timestamp>LogFile,%timestamp% Testing PIN: %currentpin%
+
+// Make sure code panel is closed again
+Let>closefail=0
+
+Label>CloseAgain
+Let>closefail=%closefail%+1
+ScreenCapture>670,388,994,599,c:\screen.bmp
+FindImagePos>c:\pad.bmp,c:\screen.bmp,20,1,xpos,ypos,imgs
+If>%imgs%<>0
+
+  // Write to logfile
+  GetDate>timestamp
+  Timestamp>LogFile,%timestamp% Code panel failed to close (%closefail%). Retrying in 1 second. Current PIN: %currentpin%
+  Wait 1
+    if>%closefail%>10
+    GetDate>timestamp
+    Timestamp>LogFile,%timestamp% Code panel failed to close %closefail% times. Trying to reset. Current PIN: %currentpin%
+    Goto>Reset
+    Endif
+  Goto>CloseAgain
+Endif
+
+
+// Eat and drink
+if>%currentpin%=%eatdrinkpin1%
+    PlayWav>C:\Windows\Media\tada.wav
+    Press F6
+    Wait 12
+
+    Press F5
+    Wait 12
+
+    // Write eat & drink to logfile
+    GetDate>timestamp
+    Timestamp>LogFile,%timestamp% Eating and drinking. (PIN: %currentpin%)
+Endif
+
+
+// Eat and drink 2
+if>%currentpin%=%eatdrinkpin2%
+    PlayWav>C:\Windows\Media\tada.wav
+    Press F6
+    Wait 12
+
+    Press F5
+    Wait 12
+
+    // Write eat & drink to logfile
+    GetDate>timestamp
+    Timestamp>LogFile,%timestamp% Eating and drinking 2. (PIN: %currentpin%)
+Endif
+
+// Eat and drink 3
+if>%currentpin%=%eatdrinkpin3%
+    PlayWav>C:\Windows\Media\tada.wav
+    Press F6
+    Wait 12
+
+    Press F5
+    Wait 12
+
+    // Write eat & drink to logfile
+    GetDate>timestamp
+    Timestamp>LogFile,%timestamp% Eating and drinking 3. (PIN: %currentpin%)
+Endif
+
+
+// If code panel did not open
+Else
+
+    // Reset and try one more time
+    Label>Reset
+    if>%retry%=false
+    PlayWav>C:\Windows\Media\Windows Critical Stop.wav
+
+    // Remove cfgWeapons-message
+    MouseMove>806,534
+    LClick
+    Wait 1
+
+    // Press code panel buttons to remove it
+    MouseMove>1428,723
+    LClick
+    LClick
+    LClick
+    LClick
+    Wait 4
+
+    // Remove menu
+    RClick
+    Wait 2
+
+    Let>retry=true
+    Let>retrycounter=%retrycounter%+1
+    GetDate>timestamp
+    Timestamp>LogFile,%timestamp% Retrying code panel #%retrycounter%. Current PIN: %currentpin%
+    Let>currentpin=%currentpin%-5
+    Goto>OpenCodePanel
+    Endif
+
+    Press ALT
+    Wait>0.2
+    Press F10
+    Wait>0.125
+    Release ALT
+    Release F10
+    ScreenCapture>0,0,1950,1130,c:\macrologs\screenshot_%currentpin%.bmp
+
+/*
+    // Make sure character does not die if haven is opened - only works outside of server restart times
+    Hour>hh
+    Min>mm
+    Let>TimeNow=%hh%%mm%
+
+    If>%TimeNow%>0001
+    If>%TimeNow%<0245
+    Goto>EatDrinkFailsafe
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+
+
+    If>%TimeNow%>0301
+    If>%TimeNow%<0545
+    Goto>EatDrinkFailsafe
+    Eelse
+    Goto>NoEatDrinkFailsafe
+    Endif
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+
+    If>%TimeNow%>0601
+    If>%TimeNow%<0845
+    Goto>EatDrinkFailsafe
+    Eelse
+    Goto>NoEatDrinkFailsafe
+    Endif
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+
+    If>%TimeNow%>0901
+    If>%TimeNow%<1145
+    Goto>EatDrinkFailsafe
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+
+    If>%TimeNow%>1201
+    If>%TimeNow%<1445
+    Goto>EatDrinkFailsafe
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+
+    If>%TimeNow%>1501
+    If>%TimeNow%<1745
+    Goto>EatDrinkFailsafe
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+
+    If>%TimeNow%>1801
+    If>%TimeNow%<2045
+    Goto>EatDrinkFailsafe
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+
+    If>%TimeNow%>2101
+    If>%TimeNow%<2245
+    Goto>EatDrinkFailsafe
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+    else
+    Goto>NoEatDrinkFailsafe
+    Endif
+
+    Label>EatDrinkFailsafe
+    GetDate>timestamp
+    Timestamp>LogFile,%timestamp% Failing outside of server restart time. Eating and Drinking and waiting 1,5 hour, then eating and drinking again. Current PIN: %currentpin%
+    Press F6
+    Wait 12
+    Press F5
+    Wait 8
+    
+    Press ALT
+    Wait>0.2
+    Press F10
+    Wait>0.125
+    Release ALT
+    Release F10
+    ScreenCapture>0,0,1950,1130,c:\macrologs\screenshot_%currentpin%_eat_drink_failsafe1.bmp
+    
+    Wait 5400
+    Timestamp>LogFile,%timestamp% Waited 1,5 hour. Eating and drinking again and going to stop. Current PIN: %currentpin%
+    Press F6
+    Wait 12
+    Press F5
+    Wait 12
+    
+    Press ALT
+    Wait>0.2
+    Press F10
+    Wait>0.125
+    Release ALT
+    Release F10
+    ScreenCapture>0,0,1950,1130,c:\macrologs\screenshot_%currentpin%_eat_drink_failsafe2.bmp
+    */
+    Label>NoEatDrinkFailsafe
+    GetDate>timestamp
+    Timestamp>LogFile,%timestamp% Code panel did not open correctly. Current PIN: %currentpin%
+    PlayWav>C:\Windows\Media\tada.wav
+    MessageModal>Code panel did not open correctly. Current pin is %currentpin%
+
+    Goto>Stop
+Endif
+
+Let>retry=false
+
+// Increment pin code and add leading zeroes
+Let>currentpin=currentpin+1
+Let>currentpin=000%currentpin%
+Let>currentpin={copy("%currentpin%",length("%currentpin%")-3,4)}
+
+EndWhile
+
+
+Label>End
+GetDate>timestamp
+Timestamp>LogFile,%timestamp% Finished sequence. Last PIN: %currentpin%
+PlayWav>C:\Windows\Media\tada.wav
+MessageModal>Finished! Last pin was %currentpin%
+
+
+Label>Stop
